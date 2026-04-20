@@ -1,0 +1,63 @@
+services:
+  # Professional Web Dashboard with Google OAuth + Modern UI
+  web-dashboard:
+    build: ./web-dashboard
+    container_name: secure-file-web-dashboard
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - MASTER_PASSWORD=${MASTER_PASSWORD:-MySuperSecurePassword123!}
+      - JWT_SECRET=${JWT_SECRET:-your-jwt-secret-key}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-your_client_id_here}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-your_client_secret_here}
+      - GOOGLE_CALLBACK_URL=http://localhost:8080/auth/google/callback
+    volumes:
+      - encryption-keys:/app/storage/keys
+      - encrypted-files:/app/storage/encrypted
+      - encrypted-images:/app/storage/encrypted-images
+      - decrypted-files:/app/storage/decrypted
+      - decrypted-images:/app/storage/decrypted-images
+      - audit-logs:/app/storage/logs
+    restart: unless-stopped
+    
+  # Encryption Service (CLI - runs on-demand)
+  encrypt-service:
+    build: ./encrypt-service
+    container_name: secure-file-encrypt-service
+    environment:
+      - NODE_ENV=development
+      - MASTER_PASSWORD=${MASTER_PASSWORD:-MySuperSecurePassword123!}
+    volumes:
+      - encryption-keys:/app/keys
+      - encrypted-files:/app/encrypted
+    restart: no
+    
+  # Decryption Service (CLI - runs on-demand)
+  decrypt-service:
+    build: ./decrypt-service
+    container_name: secure-file-decrypt-service
+    environment:
+      - NODE_ENV=development
+      - MASTER_PASSWORD=${MASTER_PASSWORD:-MySuperSecurePassword123!}
+    volumes:
+      - encryption-keys:/app/keys
+      - encrypted-files:/app/encrypted
+      - decrypted-files:/app/decrypted
+    restart: no
+
+
+volumes:
+  encryption-keys:
+    driver: local
+  encrypted-files:
+    driver: local
+  encrypted-images:
+    driver: local
+  decrypted-files:
+    driver: local
+  decrypted-images:
+    driver: local
+  audit-logs:
+    driver: local
