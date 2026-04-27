@@ -6,6 +6,7 @@ require('dotenv').config();
 const KEYS_DIR = '/app/keys';
 const ENCRYPTED_DIR = '/app/encrypted';
 const DECRYPTED_DIR = '/app/decrypted';
+const SHARED_DIR = '/shared';
 
 // Ensure directories exist
 [KEYS_DIR, ENCRYPTED_DIR, DECRYPTED_DIR].forEach(dir => {
@@ -38,7 +39,10 @@ function decryptFile(encFilePath, keyPath) {
 
     // Save decrypted file
     const filename = path.basename(encFilePath, '.enc');
-    const decPath = path.join(DECRYPTED_DIR, filename);
+    const outputDir = encFilePath.startsWith(`${SHARED_DIR}${path.sep}`) || path.dirname(encFilePath) === SHARED_DIR
+      ? SHARED_DIR
+      : DECRYPTED_DIR;
+    const decPath = path.join(outputDir, filename);
     fs.writeFileSync(decPath, decrypted);
 
     console.log('✅ Decryption Successful');
@@ -55,9 +59,40 @@ function decryptFile(encFilePath, keyPath) {
 const encFilePath = process.argv[2];
 const keyPath = process.argv[3];
 
-if (!encFilePath || !keyPath) {
-  console.error('Usage: node app.js <encrypted-file-path> <key-file-path>');
-  process.exit(1);
+if (encFilePath && keyPath) {
+  decryptFile(encFilePath, keyPath);
+} else {
+  // Watch mode: automatically decrypt new .enc files in SHARED_DIR
+  console.log('🔍 Watching /shared for new .enc files to decrypt...');
+  
+  const processedFiles = new Set();
+  
+  // Initial scan
+  fs.readdirSync(SHARED_DIR).forEach(file => {
+    if (file.endsWith('.enc')) {
+      processedFiles.add(file);
+    }
+  });
+  
+  // Poll every 5 seconds for new .enc files
+  setInterval(() => {
+    try {
+      const files = fs.readdirSync(SHARED_DIR);
+      files.forEach(file => {
+        if (file.endsWith('.enc') && !processedFiles.has(file)) {
+          processedFiles.add(file);
+          const encPath = path.join(SHARED_DIR, file);
+          const keyFile = path.join(KEYS_DIR, file.replace('.enc', '.key'));
+          if (fs.existsSync(encPath) && fs.existsSync(keyFile)) {
+            console.log(`📁 New encrypted file detected: ${file}`);
+            decryptFile(encPath, keyFile);
+          } else {
+            console.log(`⚠️  Key file not found for ${file}`);
+          }
+        }
+      });
+    } catch (err) {
+      console.error('Error scanning directory:', err.message);
+    }
+  }, 5000);
 }
-
-decryptFile(encFilePath, keyPath);

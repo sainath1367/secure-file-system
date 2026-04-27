@@ -14,6 +14,7 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-your_client_secret_here}
       - GOOGLE_CALLBACK_URL=http://localhost:8080/auth/google/callback
     volumes:
+      - ./shared-storage:/shared
       - encryption-keys:/app/storage/keys
       - encrypted-files:/app/storage/encrypted
       - encrypted-images:/app/storage/encrypted-images
@@ -24,24 +25,30 @@ services:
     
   # Encryption Service (CLI - runs on-demand)
   encrypt-service:
+    profiles:
+      - cli
     build: ./encrypt-service
     container_name: secure-file-encrypt-service
     environment:
       - NODE_ENV=development
       - MASTER_PASSWORD=${MASTER_PASSWORD:-MySuperSecurePassword123!}
     volumes:
+      - ./shared-storage:/shared
       - encryption-keys:/app/keys
       - encrypted-files:/app/encrypted
     restart: no
     
   # Decryption Service (CLI - runs on-demand)
   decrypt-service:
+    profiles:
+      - cli
     build: ./decrypt-service
     container_name: secure-file-decrypt-service
     environment:
       - NODE_ENV=development
       - MASTER_PASSWORD=${MASTER_PASSWORD:-MySuperSecurePassword123!}
     volumes:
+      - ./shared-storage:/shared
       - encryption-keys:/app/keys
       - encrypted-files:/app/encrypted
       - decrypted-files:/app/decrypted

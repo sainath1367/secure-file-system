@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const KEYS_DIR = '/app/keys';
 const ENCRYPTED_DIR = '/app/encrypted';
+const SHARED_DIR = '/shared';
 
 // Ensure directories exist
 [KEYS_DIR, ENCRYPTED_DIR].forEach(dir => {
@@ -35,7 +36,10 @@ function encryptFile(filePath) {
     
     // Save encrypted file
     const filename = path.basename(filePath);
-    const encPath = path.join(ENCRYPTED_DIR, `${filename}.enc`);
+    const outputDir = filePath.startsWith(`${SHARED_DIR}${path.sep}`) || path.dirname(filePath) === SHARED_DIR
+      ? SHARED_DIR
+      : ENCRYPTED_DIR;
+    const encPath = path.join(outputDir, `${filename}.enc`);
     fs.writeFileSync(encPath, encryptedFile);
 
     // Save AES key
@@ -56,9 +60,37 @@ function encryptFile(filePath) {
 
 // Get file from args
 const filePath = process.argv[2];
-if (!filePath) {
-  console.error('Usage: node app.js <file-path>');
-  process.exit(1);
+if (filePath) {
+  encryptFile(filePath);
+} else {
+  // Watch mode: automatically encrypt new files in SHARED_DIR
+  console.log('🔍 Watching /shared for new files to encrypt...');
+  
+  const processedFiles = new Set();
+  
+  // Initial scan
+  fs.readdirSync(SHARED_DIR).forEach(file => {
+    if (!file.endsWith('.enc')) {
+      processedFiles.add(file);
+    }
+  });
+  
+  // Poll every 5 seconds for new files
+  setInterval(() => {
+    try {
+      const files = fs.readdirSync(SHARED_DIR);
+      files.forEach(file => {
+        if (!file.endsWith('.enc') && !processedFiles.has(file)) {
+          processedFiles.add(file);
+          const fullPath = path.join(SHARED_DIR, file);
+          if (fs.existsSync(fullPath)) {
+            console.log(`📁 New file detected: ${file}`);
+            encryptFile(fullPath);
+          }
+        }
+      });
+    } catch (err) {
+      console.error('Error scanning directory:', err.message);
+    }
+  }, 5000);
 }
-
-encryptFile(filePath);

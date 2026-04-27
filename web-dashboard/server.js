@@ -258,6 +258,34 @@ app.get('/api/download-key/:filename', verifyToken, (req, res) => {
   }
 });
 
+// Download encrypted file
+app.get('/api/download-encrypted/:filename', verifyToken, (req, res) => {
+  try {
+    const fname = req.params.filename;
+    const filepath = path.join(STORAGE_PATHS.encrypted, `${fname}.enc`);
+    if (!fs.existsSync(filepath)) return res.status(404).json({ error: 'Encrypted file not found' });
+
+    res.download(filepath, `${fname}.enc`);
+    auditLog(req.user.email, 'DOWNLOAD_ENCRYPTED', `${fname}.enc`);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Download decrypted file
+app.get('/api/download/:filename', verifyToken, (req, res) => {
+  try {
+    const fname = req.params.filename;
+    const filepath = path.join(STORAGE_PATHS.decrypted, fname);
+    if (!fs.existsSync(filepath)) return res.status(404).json({ error: 'Decrypted file not found' });
+
+    res.download(filepath, fname);
+    auditLog(req.user.email, 'DOWNLOAD', fname);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Decrypt file
 app.post('/api/decrypt', verifyToken, upload.fields([{ name: 'file' }, { name: 'keyFile' }]), async (req, res) => {
   try {
