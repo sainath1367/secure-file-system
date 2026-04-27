@@ -1,0 +1,37 @@
+# Docker Compose override for CI/CD environments
+# This file is automatically merged with docker-compose.yml in CI/CD pipelines
+
+version: '3.8'
+
+services:
+  web-dashboard:
+    environment:
+      - NODE_ENV=test
+      - CI=true
+    ports:
+      - "8080:8080"
+    # Override for faster startup in CI
+    command: sh -c "npm install && npm start"
+
+  encrypt-service:
+    environment:
+      - NODE_ENV=test
+
+  decrypt-service:
+    environment:
+      - NODE_ENV=test
+
+# Use local volumes for CI to avoid permission issues
+volumes:
+  encryption-keys:
+    driver: local
+  encrypted-files:
+    driver: local
+  encrypted-images:
+    driver: local
+  decrypted-files:
+    driver: local
+  decrypted-images:
+    driver: local
+  audit-logs:
+    driver: local
