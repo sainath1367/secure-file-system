@@ -42,11 +42,15 @@ This Jenkinsfile automates the CI/CD pipeline for the secure-file-system project
 ### Environment Variables
 ```groovy
 environment {
-    DOCKER_COMPOSE_FILE = 'docker-compose.yml'
-    DOCKER_REGISTRY = 'your-registry.com'  // Change to your registry
+    // For local development/testing, no registry needed
+    // Uncomment and configure for production deployment:
+    // DOCKER_REGISTRY = 'your-dockerhub-username'
+    // DOCKER_REPO = 'secure-file-system'
     IMAGE_TAG = "${env.BUILD_NUMBER}"
 }
 ```
+
+**Note**: The current pipeline builds and tests images locally. If you want to push images to a registry for multi-environment deployment, uncomment the registry variables and add a push stage.
 
 ### Required Jenkins Plugins
 - Docker Pipeline

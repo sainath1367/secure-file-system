@@ -2,8 +2,10 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_COMPOSE_FILE = 'docker-compose.yml:docker-compose.ci.yml'
-        DOCKER_REGISTRY = 'your-registry.com'  // Change this to your Docker registry
+        // For local development/testing, no registry needed
+        // Uncomment and configure for production deployment:
+        // DOCKER_REGISTRY = 'your-dockerhub-username'
+        // DOCKER_REPO = 'secure-file-system'
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
